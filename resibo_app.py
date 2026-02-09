@@ -365,6 +365,208 @@ def calculate_total():
         return 0
     return sum(exp['amount'] for exp in st.session_state.expenses)
 
+def generate_witty_acknowledgment(item, category, amount, language):
+    """Generate contextual, witty one-liners based on expense context"""
+    import random
+    
+    # Count similar expenses in current session
+    similar_count = sum(1 for exp in st.session_state.expenses 
+                       if exp['category'] == category)
+    
+    # Get total spent in this category
+    category_total = sum(exp['amount'] for exp in st.session_state.expenses 
+                        if exp['category'] == category)
+    
+    # Taglish witty responses by category and context
+    witty_responses = {
+        'Food & Dining': [
+            f"Noted! That's your {similar_count + 1}th food expense ngayong session 🍽️",
+            f"Got it! ₱{amount:,.0f} for {item}. Kumain na ba talaga? 😄",
+            f"Alright! Food fund at ₱{category_total + amount:,.0f} na this session 🍔",
+            f"Sige! Masarap ba yan? 😋",
+            f"Oki! Another {item} logged. Food is life nga naman 🥘",
+            f"Copy! That's ₱{amount:,.0f} sa tiyan 😂",
+            f"Roger! Busog goals ba? 🍜",
+        ],
+        'Transport': [
+            f"Noted! Pang-{similar_count + 1} mong sakay today 🚕",
+            f"Got it! ₱{amount:,.0f} sa byahe. Saan ka papunta? 🛣️",
+            f"Alright! Transport budget at ₱{category_total + amount:,.0f} na 🚌",
+            f"Copy! Malayo ba byahe? 🚗",
+            f"Oki! Another plete logged. Mahal na gas ngayon eh 😅",
+            f"Sige! That's ₱{amount:,.0f} sa wheels 🛵",
+            f"Noted! Commute life is real 🚇",
+        ],
+        'Shopping': [
+            f"Ayy shopping! Yan ha, {similar_count + 1} na this session 🛍️",
+            f"Oops! ₱{amount:,.0f} for {item}. Need ba talaga yan? 😂",
+            f"Sige sige! Shopping total at ₱{category_total + amount:,.0f} na ngayon 🛒",
+            f"Noted! Retail therapy ba yan? 💳",
+            f"Got it! Another {item} sa cart. Sale ba? 😄",
+            f"Copy! ₱{amount:,.0f} sa bagong bili 🎁",
+            f"Alright! Shopping mode activated 🛍️",
+        ],
+        'Bills & Utilities': [
+            f"Noted! Bayad is life. Adulting mode ON 💡",
+            f"Got it! ₱{amount:,.0f} para sa {item}. Responsible ka naman! 👏",
+            f"Alright! Bill payment #{similar_count + 1} logged ✅",
+            f"Copy! Bayad muna bago gala 💪",
+            f"Oki! {item} paid. No disconnection today! 😅",
+            f"Sige! ₱{amount:,.0f} sa bills. Adulting is expensive 💸",
+            f"Noted! Utilities are done. Good job! 🎯",
+        ],
+        'Entertainment': [
+            f"Nice! ₱{amount:,.0f} for fun. You deserve it! 🎉",
+            f"Ohhh {item}! Enjoy mode activated 🎮",
+            f"Alright! ₱{category_total + amount:,.0f} na sa entertainment ngayong session 🎬",
+            f"Copy! Life is short, mag-enjoy din! 😄",
+            f"Got it! {item} for the soul ✨",
+            f"Noted! ₱{amount:,.0f} sa happiness fund 🎊",
+            f"Sige! That's pampagood vibes right there 🎵",
+        ],
+        'Health & Wellness': [
+            f"Good! Health is wealth nga naman 💊",
+            f"Noted! ₱{amount:,.0f} for {item}. Alagaan ang sarili! 💪",
+            f"Got it! Investment sa health yan 🏥",
+            f"Copy! Magpagaling ka! Get well soon 🩺",
+            f"Alright! Health expenses at ₱{category_total + amount:,.0f} na 💉",
+            f"Oki! {item} logged. Health first! 🌡️",
+            f"Sige! ₱{amount:,.0f} sa wellness. Worth it yan! 🧘",
+        ],
+        'Personal Care': [
+            f"Ayy ganda! Self-care is important 💇",
+            f"Noted! ₱{amount:,.0f} for {item}. Pampaganda/poganda! ✨",
+            f"Got it! Invest in yourself rin 💅",
+            f"Copy! Bagong look ba yan? 😊",
+            f"Alright! Personal care fund at ₱{category_total + amount:,.0f} 💄",
+            f"Oki! {item} logged. Treat yourself! 🧖",
+            f"Sige! ₱{amount:,.0f} sa self-love 💖",
+        ],
+        'Education': [
+            f"Nice! Education is investment 📚",
+            f"Noted! ₱{amount:,.0f} for {item}. Keep learning! 🎓",
+            f"Got it! Brain gains! 🧠",
+            f"Copy! Knowledge is power nga naman 📖",
+            f"Alright! Education fund at ₱{category_total + amount:,.0f} 🏫",
+            f"Oki! {item} logged. Future-proofing! 💡",
+            f"Sige! ₱{amount:,.0f} sa utak investment 🤓",
+        ],
+        'Gifts & Others': [
+            f"Aww! Mabait ka naman 🎁",
+            f"Noted! ₱{amount:,.0f} for {item}. Generous! 💝",
+            f"Got it! Blessing others din 🙏",
+            f"Copy! Good karma yan! ✨",
+            f"Alright! Gifts total at ₱{category_total + amount:,.0f} 🎀",
+            f"Oki! {item} logged. Share the love! 💕",
+            f"Sige! ₱{amount:,.0f} sa pag-share ng blessing 🌟",
+        ],
+        'Miscellaneous': [
+            f"Noted! ₱{amount:,.0f} for {item} 📝",
+            f"Got it! Random expense logged ✅",
+            f"Copy! Miscellaneous na naman 😄",
+            f"Alright! {item} saved 💾",
+            f"Oki! Another one sa log 📊",
+            f"Sige! ₱{amount:,.0f} noted 🗒️",
+            f"Noted! Expense #{len(st.session_state.expenses) + 1} 🔢",
+        ]
+    }
+    
+    # Special responses for high amounts
+    if amount >= 1000:
+        high_amount_responses = [
+            f"Whoa! ₱{amount:,.0f}?! Big purchase yarn! 😮",
+            f"Ayan! ₱{amount:,.0f} for {item}. Worth it ba? 🤔",
+            f"Naks! ₱{amount:,.0f}! That's a big one 💸",
+        ]
+        if random.random() < 0.3:  # 30% chance for high amount response
+            return random.choice(high_amount_responses)
+    
+    # Special responses for frequent same category
+    if similar_count >= 2:
+        frequent_responses = [
+            f"Again?! That's your {similar_count + 1}th {category} na! 👀",
+            f"Ayan na naman! ₱{category_total + amount:,.0f} na sa {category} ah 📈",
+            f"Uyyy {similar_count + 1} times na sa {category}! 😂",
+        ]
+        if random.random() < 0.4:  # 40% chance for frequent response
+            return random.choice(frequent_responses)
+    
+    # Default: pick from category-specific responses
+    category_responses = witty_responses.get(category, witty_responses['Miscellaneous'])
+    return random.choice(category_responses)
+
+def generate_spending_insights(df, total):
+    """Generate AI-powered insights about spending patterns"""
+    
+    # Calculate key metrics
+    category_totals = df.groupby('category')['amount'].sum().sort_values(ascending=False)
+    top_category = category_totals.index[0]
+    top_category_amount = category_totals.iloc[0]
+    top_category_pct = (top_category_amount / total) * 100
+    
+    num_expenses = len(df)
+    avg_expense = total / num_expenses
+    
+    # Find most frequent category
+    category_counts = df['category'].value_counts()
+    most_frequent_category = category_counts.index[0]
+    most_frequent_count = category_counts.iloc[0]
+    
+    # Find largest single expense
+    largest_expense = df.loc[df['amount'].idxmax()]
+    
+    # Build insight text
+    insights = f"""
+**Overview:**
+You've logged **{num_expenses} expenses** totaling **₱{total:,.2f}**. Your average expense is **₱{avg_expense:,.2f}**.
+
+**🎯 Top Spending Category:**
+Your biggest spending area is **{top_category}** at **₱{top_category_amount:,.2f}** ({top_category_pct:.1f}% of total). 
+"""
+    
+    # Add contextual advice based on top category
+    category_advice = {
+        'Food & Dining': "💡 **Tip:** Food takes up a large portion of your budget. Consider meal prepping or cooking at home more often to save money!",
+        'Transport': "💡 **Tip:** Transport costs add up quickly. Consider carpooling, using public transport, or planning your trips to minimize travel expenses.",
+        'Shopping': "💡 **Tip:** Shopping is your top expense. Try the 24-hour rule: wait a day before buying non-essentials to avoid impulse purchases.",
+        'Bills & Utilities': "💡 **Tip:** Bills are essential but check if you can optimize—compare internet/mobile plans, or save electricity with energy-efficient habits.",
+        'Entertainment': "💡 **Tip:** Entertainment spending is high. Look for free alternatives like parks, free events, or share subscriptions with friends/family.",
+        'Health & Wellness': "💡 **Tip:** Health is important! Consider generic medicines when possible, and use health insurance benefits to reduce costs.",
+        'Personal Care': "💡 **Tip:** Personal care matters, but check if you can DIY some services or find affordable alternatives.",
+        'Education': "💡 **Tip:** Education is an investment! Look for free online courses, second-hand books, or library resources to reduce costs.",
+    }
+    
+    if top_category in category_advice:
+        insights += f"\n{category_advice[top_category]}\n"
+    
+    # Add frequency insight
+    insights += f"""
+**📊 Spending Behavior:**
+You spend most frequently on **{most_frequent_category}** ({most_frequent_count} transactions). 
+"""
+    
+    # Identify if spending is concentrated or distributed
+    top_3_pct = (category_totals.head(3).sum() / total) * 100
+    if top_3_pct > 70:
+        insights += f"\n**🔍 Pattern Alert:** {top_3_pct:.0f}% of your spending is concentrated in just 3 categories. Consider if this balance aligns with your priorities."
+    else:
+        insights += f"\n**✅ Balanced Spending:** Your expenses are well-distributed across {len(category_totals)} categories."
+    
+    # Largest expense callout
+    insights += f"""
+
+**🏆 Biggest Single Expense:**
+₱{largest_expense['amount']:,.2f} on **{largest_expense['item']}** ({largest_expense['category']})
+"""
+    
+    # Add encouragement
+    if num_expenses >= 10:
+        insights += "\n\n**🎉 Great job tracking!** You're building great financial awareness by consistently logging your expenses. Keep it up!"
+    elif num_expenses >= 5:
+        insights += "\n\n**👍 Good start!** Keep logging expenses to get more detailed insights and better understand your spending patterns."
+    
+    return insights
+
 # App Header
 st.title("💰 Resibo")
 st.caption("Your Multilingual Expense Tracker | English • Tagalog • Bisaya")
@@ -662,75 +864,3 @@ with tab2:
         category_details['Percentage'] = category_details['Percentage'].apply(lambda x: f"{x}%")
         
         st.dataframe(category_details, use_container_width=True, hide_index=True)
-
-def generate_spending_insights(df, total):
-    """Generate AI-powered insights about spending patterns"""
-    
-    # Calculate key metrics
-    category_totals = df.groupby('category')['amount'].sum().sort_values(ascending=False)
-    top_category = category_totals.index[0]
-    top_category_amount = category_totals.iloc[0]
-    top_category_pct = (top_category_amount / total) * 100
-    
-    num_expenses = len(df)
-    avg_expense = total / num_expenses
-    
-    # Find most frequent category
-    category_counts = df['category'].value_counts()
-    most_frequent_category = category_counts.index[0]
-    most_frequent_count = category_counts.iloc[0]
-    
-    # Find largest single expense
-    largest_expense = df.loc[df['amount'].idxmax()]
-    
-    # Build insight text
-    insights = f"""
-**Overview:**
-You've logged **{num_expenses} expenses** totaling **₱{total:,.2f}**. Your average expense is **₱{avg_expense:,.2f}**.
-
-**🎯 Top Spending Category:**
-Your biggest spending area is **{top_category}** at **₱{top_category_amount:,.2f}** ({top_category_pct:.1f}% of total). 
-"""
-    
-    # Add contextual advice based on top category
-    category_advice = {
-        'Food & Dining': "💡 **Tip:** Food takes up a large portion of your budget. Consider meal prepping or cooking at home more often to save money!",
-        'Transport': "💡 **Tip:** Transport costs add up quickly. Consider carpooling, using public transport, or planning your trips to minimize travel expenses.",
-        'Shopping': "💡 **Tip:** Shopping is your top expense. Try the 24-hour rule: wait a day before buying non-essentials to avoid impulse purchases.",
-        'Bills & Utilities': "💡 **Tip:** Bills are essential but check if you can optimize—compare internet/mobile plans, or save electricity with energy-efficient habits.",
-        'Entertainment': "💡 **Tip:** Entertainment spending is high. Look for free alternatives like parks, free events, or share subscriptions with friends/family.",
-        'Health & Wellness': "💡 **Tip:** Health is important! Consider generic medicines when possible, and use health insurance benefits to reduce costs.",
-        'Personal Care': "💡 **Tip:** Personal care matters, but check if you can DIY some services or find affordable alternatives.",
-        'Education': "💡 **Tip:** Education is an investment! Look for free online courses, second-hand books, or library resources to reduce costs.",
-    }
-    
-    if top_category in category_advice:
-        insights += f"\n{category_advice[top_category]}\n"
-    
-    # Add frequency insight
-    insights += f"""
-**📊 Spending Behavior:**
-You spend most frequently on **{most_frequent_category}** ({most_frequent_count} transactions). 
-"""
-    
-    # Identify if spending is concentrated or distributed
-    top_3_pct = (category_totals.head(3).sum() / total) * 100
-    if top_3_pct > 70:
-        insights += f"\n**🔍 Pattern Alert:** {top_3_pct:.0f}% of your spending is concentrated in just 3 categories. Consider if this balance aligns with your priorities."
-    else:
-        insights += f"\n**✅ Balanced Spending:** Your expenses are well-distributed across {len(category_totals)} categories."
-    
-    # Largest expense callout
-    insights += f"""
-
-**🏆 Biggest Single Expense:**
-₱{largest_expense['amount']:,.2f} on **{largest_expense['item']}** ({largest_expense['category']})
-"""
-    
-    # Add encouragement
-    if num_expenses >= 10:
-        insights += "\n\n**🎉 Great job tracking!** You're building great financial awareness by consistently logging your expenses. Keep it up!"
-    elif num_expenses >= 5:
-        insights += "\n\n**👍 Good start!** Keep logging expenses to get more detailed insights and better understand your spending patterns."
-    
-    return insights
