@@ -2,13 +2,207 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import re
+import random
 
 # Page configuration
 st.set_page_config(
     page_title="Resibo - Expense Tracker",
     page_icon="💰",
-    layout="centered"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
+
+# Custom CSS - Airbnb-inspired design
+st.markdown("""
+<style>
+    /* Import Inter font */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    
+    /* Global styles */
+    * {
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Dark mode colors */
+    :root {
+        --bg-primary: #0F1419;
+        --bg-surface: #1A1F26;
+        --bg-elevated: #242B33;
+        --border-color: #2D3339;
+        --text-primary: #FFFFFF;
+        --text-secondary: #8E949E;
+        --accent: #10B981;
+        --accent-hover: #059669;
+    }
+    
+    /* Main container */
+    .main {
+        background-color: var(--bg-primary);
+        padding: 0;
+    }
+    
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: var(--bg-surface);
+        border-right: 1px solid var(--border-color);
+        padding-top: 2rem;
+    }
+    
+    [data-testid="stSidebar"] .element-container {
+        padding: 0.5rem 1rem;
+    }
+    
+    /* Hide default streamlit elements */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Card style */
+    .card {
+        background-color: var(--bg-surface);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    
+    /* Chat message styles */
+    .user-message {
+        background-color: var(--bg-elevated);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        margin: 0.5rem 0;
+        margin-left: auto;
+        max-width: 70%;
+        text-align: right;
+        color: var(--text-primary);
+    }
+    
+    .assistant-message {
+        background-color: var(--bg-surface);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        margin: 0.5rem 0;
+        max-width: 70%;
+        border-left: 3px solid var(--accent);
+        color: var(--text-primary);
+    }
+    
+    /* Buttons */
+    .stButton > button {
+        background-color: var(--accent);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.2s;
+        width: 100%;
+    }
+    
+    .stButton > button:hover {
+        background-color: var(--accent-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    
+    /* Input box */
+    .stTextInput > div > div > input {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--text-primary);
+        padding: 0.75rem 1rem;
+    }
+    
+    .stTextInput > div > div > input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+    }
+    
+    /* Metrics */
+    [data-testid="stMetricValue"] {
+        color: var(--accent);
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+    
+    /* Selectbox */
+    .stSelectbox > div > div {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+    }
+    
+    /* Headers */
+    h1, h2, h3 {
+        color: var(--text-primary);
+        font-weight: 700;
+    }
+    
+    /* Text */
+    p, span, div {
+        color: var(--text-secondary);
+    }
+    
+    /* Expander */
+    .streamlit-expanderHeader {
+        background-color: var(--bg-surface);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+    
+    /* Fixed chat input container */
+    .fixed-chat-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: var(--bg-primary);
+        padding: 1rem;
+        border-top: 1px solid var(--border-color);
+        z-index: 999;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.4);
+    }
+    
+    /* Welcome card */
+    .welcome-card {
+        background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-elevated) 100%);
+        border-radius: 16px;
+        padding: 3rem 2rem;
+        text-align: center;
+        border: 1px solid var(--border-color);
+        margin: 2rem 0;
+    }
+    
+    .welcome-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+    }
+    
+    .welcome-subtitle {
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+        margin-bottom: 2rem;
+    }
+    
+    .feature-list {
+        text-align: left;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    
+    .feature-item {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0;
+        color: var(--text-primary);
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # Initialize session state
 if 'expenses' not in st.session_state:
@@ -18,7 +212,13 @@ if 'pending_expense' not in st.session_state:
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 if 'custom_categories' not in st.session_state:
-    st.session_state.custom_categories = {}  # Store custom categories: {name: [keywords]}
+    st.session_state.custom_categories = {}
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = 'home'
+if 'show_load_more' not in st.session_state:
+    st.session_state.show_load_more = False
+if 'messages_to_show' not in st.session_state:
+    st.session_state.messages_to_show = 10
 
 # Language detection keywords
 LANGUAGE_PATTERNS = {
@@ -26,19 +226,15 @@ LANGUAGE_PATTERNS = {
     'bisaya': ['plete', 'palit', 'gipalit', 'gibayad', 'bayad', 'gasto']
 }
 
-# Category keywords for auto-classification (ordered by priority for better matching)
+# Category keywords for auto-classification
 CATEGORY_KEYWORDS = {
     'Food & Dining': [
-        # General food
         'food', 'meal', 'lunch', 'dinner', 'breakfast', 'snack', 'merienda',
-        # Filipino foods
         'rice', 'bigas', 'ulam', 'kaon', 'pagkaon', 'sud-an',
-        # Dining
         'restaurant', 'jollibee', 'mcdo', 'mcdonald', 'kfc', 'pizza', 'burger',
         'coffee', 'kape', 'starbucks', 'cafe', 'carinderia', 'turo-turo',
-        # Groceries
         'grocery', 'groceries', 'palengke', 'market', 'supermarket', 'sari-sari',
-        'vegetables', 'gulay', 'meat', 'karne', 'fish', 'isda', 'fruits', 'prutas'
+        'vegetables', 'gulay', 'meat', 'karne', 'fish', 'isda', 'fruits', 'prutas', 'egg', 'itlog'
     ],
     'Transport': [
         'transport', 'fare', 'plete', 'pamasahe', 
@@ -107,7 +303,6 @@ def detect_language(text):
 
 def extract_amount(text):
     """Extract numerical amount from text"""
-    # Look for patterns like "50", "50 pesos", "₱50", "php 50"
     patterns = [
         r'₱\s*(\d+(?:\.\d+)?)',
         r'(\d+(?:\.\d+)?)\s*(?:pesos?|php)',
@@ -123,29 +318,26 @@ def extract_amount(text):
 
 def extract_item(text, amount):
     """Extract item/service from text"""
-    # Remove amount-related words
     cleaned = re.sub(r'₱?\d+(?:\.\d+)?\s*(?:pesos?|php)?', '', text, flags=re.IGNORECASE)
     
-    # Remove common transaction words
     remove_words = ['bumili', 'binili', 'bought', 'paid', 'for', 'ako', 'ng', 'sa', 'nako', 'ko', 
                     'gipalit', 'gibayad', 'spent', 'halagang', 'kay', 'og']
     
     for word in remove_words:
         cleaned = re.sub(r'\b' + word + r'\b', '', cleaned, flags=re.IGNORECASE)
     
-    # Clean up whitespace
     cleaned = ' '.join(cleaned.split()).strip()
     
     return cleaned if cleaned else None
 
 def categorize_item(item_text):
-    """Auto-assign category based on item keywords with priority matching"""
+    """Auto-assign category based on item keywords"""
     if not item_text:
         return 'Miscellaneous'
     
     item_lower = item_text.lower()
     
-    # First check custom categories (higher priority)
+    # First check custom categories
     for category, keywords in st.session_state.custom_categories.items():
         for keyword in keywords:
             if keyword.lower() in item_lower:
@@ -161,30 +353,27 @@ def categorize_item(item_text):
     
     return 'Miscellaneous'
 
-def get_response_text(lang, message_type, **kwargs):
+def get_response_text(lang, message_type):
     """Get localized response text"""
     responses = {
         'english': {
-            'understood': "Got it! Let me process that expense...",
             'missing_amount': "I couldn't find the amount. How much did you spend?",
             'missing_item': "What did you buy or pay for?",
-            'confirm': "Should I save this to your Daily Log?",
-            'saved': "✅ Expense saved!",
-            'cancelled': "Okay, expense not saved.",
+            'confirm': "Should I save this?",
+            'saved': "✅ Saved!",
+            'cancelled': "Okay, not saved.",
         },
         'tagalog': {
-            'understood': "Naintindihan ko! Ipoproseso ko ang gastos mo...",
             'missing_amount': "Hindi ko makita ang halaga. Magkano ang ginastos mo?",
             'missing_item': "Ano ang binili o binayaran mo?",
-            'confirm': "I-save ko ba ito sa iyong Daily Log?",
-            'saved': "✅ Na-save na ang gastos!",
+            'confirm': "I-save ko ba ito?",
+            'saved': "✅ Na-save na!",
             'cancelled': "Sige, hindi na-save.",
         },
         'bisaya': {
-            'understood': "Nakasabot ko! Iproseso nako ni...",
             'missing_amount': "Wala koy makita nga kantidad. Pila man ang imong gigasto?",
             'missing_item': "Unsa man ang imong gipalit o gibayaran?",
-            'confirm': "I-save ba nako ni sa imong Daily Log?",
+            'confirm': "I-save ba nako ni?",
             'saved': "✅ Na-save na!",
             'cancelled': "Sige, wala na-save.",
         }
@@ -192,146 +381,181 @@ def get_response_text(lang, message_type, **kwargs):
     
     return responses[lang].get(message_type, "")
 
-def generate_witty_acknowledgment(item, category, amount, language):
-    """Generate contextual, witty one-liners based on expense context"""
-    import random
+def calculate_total():
+    """Calculate total expenses"""
+    if not st.session_state.expenses:
+        return 0
+    return sum(exp['amount'] for exp in st.session_state.expenses)
+
+def generate_conversational_confirmation(item, category, amount):
+    """Generate conversational confirmation message"""
     
-    # Count similar expenses in current session
-    similar_count = sum(1 for exp in st.session_state.expenses 
-                       if exp['category'] == category)
+    category_emoji = {
+        'Food & Dining': '🍽️',
+        'Transport': '🚕',
+        'Shopping': '🛍️',
+        'Bills & Utilities': '💡',
+        'Entertainment': '🎮',
+        'Health & Wellness': '💊',
+        'Personal Care': '💇',
+        'Education': '📚',
+        'Gifts & Others': '🎁',
+        'Miscellaneous': '🗂️'
+    }
     
-    # Get total spent in this category
-    category_total = sum(exp['amount'] for exp in st.session_state.expenses 
-                        if exp['category'] == category)
+    emoji = category_emoji.get(category, '📝')
     
-    # Taglish witty responses by category and context
-    witty_responses = {
+    # Main confirmation
+    confirmation = f"Copy that! Listed **₱{amount:,.2f}** under **{category}**. {emoji}"
+    
+    # Contextual witty comment
+    witty_comments = {
         'Food & Dining': [
-            f"Noted! That's your {similar_count + 1}th food expense ngayong session 🍽️",
-            f"Got it! ₱{amount:,.0f} for {item}. Kumain na ba talaga? 😄",
-            f"Alright! Food fund at ₱{category_total + amount:,.0f} na this session 🍔",
-            f"Sige! Masarap ba yan? 😋",
-            f"Oki! Another {item} logged. Food is life nga naman 🥘",
-            f"Copy! That's ₱{amount:,.0f} sa tiyan 😂",
-            f"Roger! Busog goals ba? 🍜",
+            f"Itong \"{item}\" ba talaga yan? 😅",
+            "Busog ka na? 😋",
+            "Sarap nyan! 🤤",
+            "Kumain na ba? 🍴"
         ],
         'Transport': [
-            f"Noted! Pang-{similar_count + 1} mong sakay today 🚕",
-            f"Got it! ₱{amount:,.0f} sa byahe. Saan ka papunta? 🛣️",
-            f"Alright! Transport budget at ₱{category_total + amount:,.0f} na 🚌",
-            f"Copy! Malayo ba byahe? 🚗",
-            f"Oki! Another plete logged. Mahal na gas ngayon eh 😅",
-            f"Sige! That's ₱{amount:,.0f} sa wheels 🛵",
-            f"Noted! Commute life is real 🚇",
+            "Saan ka galing? 🛣️",
+            "Malayo ba byahe? 🚗",
+            "Traffic ba? 😅",
+            "Mahal na plete ngayon! 💸"
         ],
         'Shopping': [
-            f"Ayy shopping! Yan ha, {similar_count + 1} na this session 🛍️",
-            f"Oops! ₱{amount:,.0f} for {item}. Need ba talaga yan? 😂",
-            f"Sige sige! Shopping total at ₱{category_total + amount:,.0f} na ngayon 🛒",
-            f"Noted! Retail therapy ba yan? 💳",
-            f"Got it! Another {item} sa cart. Sale ba? 😄",
-            f"Copy! ₱{amount:,.0f} sa bagong bili 🎁",
-            f"Alright! Shopping mode activated 🛍️",
+            "Need ba talaga yan? 😂",
+            "Sale ba to? 🏷️",
+            "Bagong bili! ✨",
+            "Shopping therapy? 💳"
         ],
         'Bills & Utilities': [
-            f"Noted! Bayad is life. Adulting mode ON 💡",
-            f"Got it! ₱{amount:,.0f} para sa {item}. Responsible ka naman! 👏",
-            f"Alright! Bill payment #{similar_count + 1} logged ✅",
-            f"Copy! Bayad muna bago gala 💪",
-            f"Oki! {item} paid. No disconnection today! 😅",
-            f"Sige! ₱{amount:,.0f} sa bills. Adulting is expensive 💸",
-            f"Noted! Utilities are done. Good job! 🎯",
+            "Bayad muna bago gala! 💪",
+            "Adulting mode ON! 🎯",
+            "Responsible naman! 👏",
+            "No disconnection today! ✅"
         ],
         'Entertainment': [
-            f"Nice! ₱{amount:,.0f} for fun. You deserve it! 🎉",
-            f"Ohhh {item}! Enjoy mode activated 🎮",
-            f"Alright! ₱{category_total + amount:,.0f} na sa entertainment ngayong session 🎬",
-            f"Copy! Life is short, mag-enjoy din! 😄",
-            f"Got it! {item} for the soul ✨",
-            f"Noted! ₱{amount:,.0f} sa happiness fund 🎊",
-            f"Sige! That's pampagood vibes right there 🎵",
+            "Enjoy mode activated! 🎉",
+            "You deserve it! ✨",
+            "Happy ka naman? 😊",
+            "Life is short! 🌟"
         ],
         'Health & Wellness': [
-            f"Good! Health is wealth nga naman 💊",
-            f"Noted! ₱{amount:,.0f} for {item}. Alagaan ang sarili! 💪",
-            f"Got it! Investment sa health yan 🏥",
-            f"Copy! Magpagaling ka! Get well soon 🩺",
-            f"Alright! Health expenses at ₱{category_total + amount:,.0f} na 💉",
-            f"Oki! {item} logged. Health first! 🌡️",
-            f"Sige! ₱{amount:,.0f} sa wellness. Worth it yan! 🧘",
+            "Health is wealth! 💪",
+            "Alagaan ang sarili! 🌡️",
+            "Investment yan! 💯",
+            "Get well soon! 🏥"
         ],
         'Personal Care': [
-            f"Ayy ganda! Self-care is important 💇",
-            f"Noted! ₱{amount:,.0f} for {item}. Pampaganda/poganda! ✨",
-            f"Got it! Invest in yourself rin 💅",
-            f"Copy! Bagong look ba yan? 😊",
-            f"Alright! Personal care fund at ₱{category_total + amount:,.0f} 💄",
-            f"Oki! {item} logged. Treat yourself! 🧖",
-            f"Sige! ₱{amount:,.0f} sa self-love 💖",
+            "Pampaganda/poganda! ✨",
+            "Self-care is important! 💅",
+            "Bagong look? 😊",
+            "Treat yourself! 🧖"
         ],
         'Education': [
-            f"Nice! Education is investment 📚",
-            f"Noted! ₱{amount:,.0f} for {item}. Keep learning! 🎓",
-            f"Got it! Brain gains! 🧠",
-            f"Copy! Knowledge is power nga naman 📖",
-            f"Alright! Education fund at ₱{category_total + amount:,.0f} 🏫",
-            f"Oki! {item} logged. Future-proofing! 💡",
-            f"Sige! ₱{amount:,.0f} sa utak investment 🤓",
+            "Brain gains! 🧠",
+            "Keep learning! 🎓",
+            "Future-proofing! 💡",
+            "Knowledge is power! 📖"
         ],
         'Gifts & Others': [
-            f"Aww! Mabait ka naman 🎁",
-            f"Noted! ₱{amount:,.0f} for {item}. Generous! 💝",
-            f"Got it! Blessing others din 🙏",
-            f"Copy! Good karma yan! ✨",
-            f"Alright! Gifts total at ₱{category_total + amount:,.0f} 🎀",
-            f"Oki! {item} logged. Share the love! 💕",
-            f"Sige! ₱{amount:,.0f} sa pag-share ng blessing 🌟",
+            "Mabait ka naman! 🎁",
+            "Good karma yan! ✨",
+            "Generous! 💝",
+            "Blessing others! 🙏"
         ],
         'Miscellaneous': [
-            f"Noted! ₱{amount:,.0f} for {item} 📝",
-            f"Got it! Random expense logged ✅",
-            f"Copy! Miscellaneous na naman 😄",
-            f"Alright! {item} saved 💾",
-            f"Oki! Another one sa log 📊",
-            f"Sige! ₱{amount:,.0f} noted 🗒️",
-            f"Noted! Expense #{len(st.session_state.expenses) + 1} 🔢",
+            f"Itong \"{item}\" noted! 📝",
+            "Saved! ✅",
+            "Got it! 👍",
+            "Copy that! 📋"
         ]
     }
     
-    # Special responses for high amounts
+    # Special case for high amounts
     if amount >= 1000:
-        high_amount_responses = [
+        comments = [
             f"Whoa! ₱{amount:,.0f}?! Big purchase yarn! 😮",
-            f"Ayan! ₱{amount:,.0f} for {item}. Worth it ba? 🤔",
-            f"Naks! ₱{amount:,.0f}! That's a big one 💸",
+            f"Worth it ba? 🤔",
+            "Big one! 💸"
         ]
-        if random.random() < 0.3:  # 30% chance for high amount response
-            return random.choice(high_amount_responses)
+        comment = random.choice(comments)
+    else:
+        comments = witty_comments.get(category, witty_comments['Miscellaneous'])
+        comment = random.choice(comments)
     
-    # Special responses for frequent same category
-    if similar_count >= 2:
-        frequent_responses = [
-            f"Again?! That's your {similar_count + 1}th {category} na! 👀",
-            f"Ayan na naman! ₱{category_total + amount:,.0f} na sa {category} ah 📈",
-            f"Uyyy {similar_count + 1} times na sa {category}! 😂",
-        ]
-        if random.random() < 0.4:  # 40% chance for frequent response
-            return random.choice(frequent_responses)
+    return confirmation, comment
+
+def generate_spending_insights(df, total):
+    """Generate AI-powered insights"""
     
-    # Default: pick from category-specific responses
-    category_responses = witty_responses.get(category, witty_responses['Miscellaneous'])
-    return random.choice(category_responses)
+    category_totals = df.groupby('category')['amount'].sum().sort_values(ascending=False)
+    top_category = category_totals.index[0]
+    top_category_amount = category_totals.iloc[0]
+    top_category_pct = (top_category_amount / total) * 100
+    
+    num_expenses = len(df)
+    avg_expense = total / num_expenses
+    
+    category_counts = df['category'].value_counts()
+    most_frequent_category = category_counts.index[0]
+    most_frequent_count = category_counts.iloc[0]
+    
+    largest_expense = df.loc[df['amount'].idxmax()]
+    
+    insights = f"""
+**Overview:**
+You've logged **{num_expenses} expenses** totaling **₱{total:,.2f}**. Your average expense is **₱{avg_expense:,.2f}**.
+
+**🎯 Top Spending Category:**
+Your biggest spending area is **{top_category}** at **₱{top_category_amount:,.2f}** ({top_category_pct:.1f}% of total). 
+"""
+    
+    category_advice = {
+        'Food & Dining': "💡 **Tip:** Food takes up a large portion of your budget. Consider meal prepping or cooking at home more often to save money!",
+        'Transport': "💡 **Tip:** Transport costs add up quickly. Consider carpooling, using public transport, or planning your trips to minimize travel expenses.",
+        'Shopping': "💡 **Tip:** Shopping is your top expense. Try the 24-hour rule: wait a day before buying non-essentials to avoid impulse purchases.",
+        'Bills & Utilities': "💡 **Tip:** Bills are essential but check if you can optimize—compare internet/mobile plans, or save electricity with energy-efficient habits.",
+        'Entertainment': "💡 **Tip:** Entertainment spending is high. Look for free alternatives like parks, free events, or share subscriptions with friends/family.",
+        'Health & Wellness': "💡 **Tip:** Health is important! Consider generic medicines when possible, and use health insurance benefits to reduce costs.",
+        'Personal Care': "💡 **Tip:** Personal care matters, but check if you can DIY some services or find affordable alternatives.",
+        'Education': "💡 **Tip:** Education is an investment! Look for free online courses, second-hand books, or library resources to reduce costs.",
+    }
+    
+    if top_category in category_advice:
+        insights += f"\n{category_advice[top_category]}\n"
+    
+    insights += f"""
+**📊 Spending Behavior:**
+You spend most frequently on **{most_frequent_category}** ({most_frequent_count} transactions). 
+"""
+    
+    top_3_pct = (category_totals.head(3).sum() / total) * 100
+    if top_3_pct > 70:
+        insights += f"\n**🔍 Pattern Alert:** {top_3_pct:.0f}% of your spending is concentrated in just 3 categories. Consider if this balance aligns with your priorities."
+    else:
+        insights += f"\n**✅ Balanced Spending:** Your expenses are well-distributed across {len(category_totals)} categories."
+    
+    insights += f"""
+
+**🏆 Biggest Single Expense:**
+₱{largest_expense['amount']:,.2f} on **{largest_expense['item']}** ({largest_expense['category']})
+"""
+    
+    if num_expenses >= 10:
+        insights += "\n\n**🎉 Great job tracking!** You're building great financial awareness by consistently logging your expenses. Keep it up!"
+    elif num_expenses >= 5:
+        insights += "\n\n**👍 Good start!** Keep logging expenses to get more detailed insights and better understand your spending patterns."
+    
+    return insights
 
 def process_expense_input(user_input):
     """Process user input and extract expense data"""
-    # Step 1: Language Detection
     detected_lang = detect_language(user_input)
     
-    # Step 2: Data Extraction
     amount = extract_amount(user_input)
     item = extract_item(user_input, amount)
     
-    # Check for missing data
     if amount is None:
         return {
             'status': 'missing_amount',
@@ -347,7 +571,6 @@ def process_expense_input(user_input):
             'message': get_response_text(detected_lang, 'missing_item')
         }
     
-    # Step 3: Categorize
     category = categorize_item(item)
     
     return {
@@ -355,382 +578,130 @@ def process_expense_input(user_input):
         'language': detected_lang,
         'amount': amount,
         'item': item,
-        'category': category,
-        'message': get_response_text(detected_lang, 'understood')
+        'category': category
     }
 
-def calculate_total():
-    """Calculate total expenses"""
-    if not st.session_state.expenses:
-        return 0
-    return sum(exp['amount'] for exp in st.session_state.expenses)
-
-def generate_witty_acknowledgment(item, category, amount, language):
-    """Generate contextual, witty one-liners based on expense context"""
-    import random
-    
-    # Count similar expenses in current session
-    similar_count = sum(1 for exp in st.session_state.expenses 
-                       if exp['category'] == category)
-    
-    # Get total spent in this category
-    category_total = sum(exp['amount'] for exp in st.session_state.expenses 
-                        if exp['category'] == category)
-    
-    # Taglish witty responses by category and context
-    witty_responses = {
-        'Food & Dining': [
-            f"Noted! That's your {similar_count + 1}th food expense ngayong session 🍽️",
-            f"Got it! ₱{amount:,.0f} for {item}. Kumain na ba talaga? 😄",
-            f"Alright! Food fund at ₱{category_total + amount:,.0f} na this session 🍔",
-            f"Sige! Masarap ba yan? 😋",
-            f"Oki! Another {item} logged. Food is life nga naman 🥘",
-            f"Copy! That's ₱{amount:,.0f} sa tiyan 😂",
-            f"Roger! Busog goals ba? 🍜",
-        ],
-        'Transport': [
-            f"Noted! Pang-{similar_count + 1} mong sakay today 🚕",
-            f"Got it! ₱{amount:,.0f} sa byahe. Saan ka papunta? 🛣️",
-            f"Alright! Transport budget at ₱{category_total + amount:,.0f} na 🚌",
-            f"Copy! Malayo ba byahe? 🚗",
-            f"Oki! Another plete logged. Mahal na gas ngayon eh 😅",
-            f"Sige! That's ₱{amount:,.0f} sa wheels 🛵",
-            f"Noted! Commute life is real 🚇",
-        ],
-        'Shopping': [
-            f"Ayy shopping! Yan ha, {similar_count + 1} na this session 🛍️",
-            f"Oops! ₱{amount:,.0f} for {item}. Need ba talaga yan? 😂",
-            f"Sige sige! Shopping total at ₱{category_total + amount:,.0f} na ngayon 🛒",
-            f"Noted! Retail therapy ba yan? 💳",
-            f"Got it! Another {item} sa cart. Sale ba? 😄",
-            f"Copy! ₱{amount:,.0f} sa bagong bili 🎁",
-            f"Alright! Shopping mode activated 🛍️",
-        ],
-        'Bills & Utilities': [
-            f"Noted! Bayad is life. Adulting mode ON 💡",
-            f"Got it! ₱{amount:,.0f} para sa {item}. Responsible ka naman! 👏",
-            f"Alright! Bill payment #{similar_count + 1} logged ✅",
-            f"Copy! Bayad muna bago gala 💪",
-            f"Oki! {item} paid. No disconnection today! 😅",
-            f"Sige! ₱{amount:,.0f} sa bills. Adulting is expensive 💸",
-            f"Noted! Utilities are done. Good job! 🎯",
-        ],
-        'Entertainment': [
-            f"Nice! ₱{amount:,.0f} for fun. You deserve it! 🎉",
-            f"Ohhh {item}! Enjoy mode activated 🎮",
-            f"Alright! ₱{category_total + amount:,.0f} na sa entertainment ngayong session 🎬",
-            f"Copy! Life is short, mag-enjoy din! 😄",
-            f"Got it! {item} for the soul ✨",
-            f"Noted! ₱{amount:,.0f} sa happiness fund 🎊",
-            f"Sige! That's pampagood vibes right there 🎵",
-        ],
-        'Health & Wellness': [
-            f"Good! Health is wealth nga naman 💊",
-            f"Noted! ₱{amount:,.0f} for {item}. Alagaan ang sarili! 💪",
-            f"Got it! Investment sa health yan 🏥",
-            f"Copy! Magpagaling ka! Get well soon 🩺",
-            f"Alright! Health expenses at ₱{category_total + amount:,.0f} na 💉",
-            f"Oki! {item} logged. Health first! 🌡️",
-            f"Sige! ₱{amount:,.0f} sa wellness. Worth it yan! 🧘",
-        ],
-        'Personal Care': [
-            f"Ayy ganda! Self-care is important 💇",
-            f"Noted! ₱{amount:,.0f} for {item}. Pampaganda/poganda! ✨",
-            f"Got it! Invest in yourself rin 💅",
-            f"Copy! Bagong look ba yan? 😊",
-            f"Alright! Personal care fund at ₱{category_total + amount:,.0f} 💄",
-            f"Oki! {item} logged. Treat yourself! 🧖",
-            f"Sige! ₱{amount:,.0f} sa self-love 💖",
-        ],
-        'Education': [
-            f"Nice! Education is investment 📚",
-            f"Noted! ₱{amount:,.0f} for {item}. Keep learning! 🎓",
-            f"Got it! Brain gains! 🧠",
-            f"Copy! Knowledge is power nga naman 📖",
-            f"Alright! Education fund at ₱{category_total + amount:,.0f} 🏫",
-            f"Oki! {item} logged. Future-proofing! 💡",
-            f"Sige! ₱{amount:,.0f} sa utak investment 🤓",
-        ],
-        'Gifts & Others': [
-            f"Aww! Mabait ka naman 🎁",
-            f"Noted! ₱{amount:,.0f} for {item}. Generous! 💝",
-            f"Got it! Blessing others din 🙏",
-            f"Copy! Good karma yan! ✨",
-            f"Alright! Gifts total at ₱{category_total + amount:,.0f} 🎀",
-            f"Oki! {item} logged. Share the love! 💕",
-            f"Sige! ₱{amount:,.0f} sa pag-share ng blessing 🌟",
-        ],
-        'Miscellaneous': [
-            f"Noted! ₱{amount:,.0f} for {item} 📝",
-            f"Got it! Random expense logged ✅",
-            f"Copy! Miscellaneous na naman 😄",
-            f"Alright! {item} saved 💾",
-            f"Oki! Another one sa log 📊",
-            f"Sige! ₱{amount:,.0f} noted 🗒️",
-            f"Noted! Expense #{len(st.session_state.expenses) + 1} 🔢",
-        ]
-    }
-    
-    # Special responses for high amounts
-    if amount >= 1000:
-        high_amount_responses = [
-            f"Whoa! ₱{amount:,.0f}?! Big purchase yarn! 😮",
-            f"Ayan! ₱{amount:,.0f} for {item}. Worth it ba? 🤔",
-            f"Naks! ₱{amount:,.0f}! That's a big one 💸",
-        ]
-        if random.random() < 0.3:  # 30% chance for high amount response
-            return random.choice(high_amount_responses)
-    
-    # Special responses for frequent same category
-    if similar_count >= 2:
-        frequent_responses = [
-            f"Again?! That's your {similar_count + 1}th {category} na! 👀",
-            f"Ayan na naman! ₱{category_total + amount:,.0f} na sa {category} ah 📈",
-            f"Uyyy {similar_count + 1} times na sa {category}! 😂",
-        ]
-        if random.random() < 0.4:  # 40% chance for frequent response
-            return random.choice(frequent_responses)
-    
-    # Default: pick from category-specific responses
-    category_responses = witty_responses.get(category, witty_responses['Miscellaneous'])
-    return random.choice(category_responses)
-
-def generate_spending_insights(df, total):
-    """Generate AI-powered insights about spending patterns"""
-    
-    # Calculate key metrics
-    category_totals = df.groupby('category')['amount'].sum().sort_values(ascending=False)
-    top_category = category_totals.index[0]
-    top_category_amount = category_totals.iloc[0]
-    top_category_pct = (top_category_amount / total) * 100
-    
-    num_expenses = len(df)
-    avg_expense = total / num_expenses
-    
-    # Find most frequent category
-    category_counts = df['category'].value_counts()
-    most_frequent_category = category_counts.index[0]
-    most_frequent_count = category_counts.iloc[0]
-    
-    # Find largest single expense
-    largest_expense = df.loc[df['amount'].idxmax()]
-    
-    # Build insight text
-    insights = f"""
-**Overview:**
-You've logged **{num_expenses} expenses** totaling **₱{total:,.2f}**. Your average expense is **₱{avg_expense:,.2f}**.
-
-**🎯 Top Spending Category:**
-Your biggest spending area is **{top_category}** at **₱{top_category_amount:,.2f}** ({top_category_pct:.1f}% of total). 
-"""
-    
-    # Add contextual advice based on top category
-    category_advice = {
-        'Food & Dining': "💡 **Tip:** Food takes up a large portion of your budget. Consider meal prepping or cooking at home more often to save money!",
-        'Transport': "💡 **Tip:** Transport costs add up quickly. Consider carpooling, using public transport, or planning your trips to minimize travel expenses.",
-        'Shopping': "💡 **Tip:** Shopping is your top expense. Try the 24-hour rule: wait a day before buying non-essentials to avoid impulse purchases.",
-        'Bills & Utilities': "💡 **Tip:** Bills are essential but check if you can optimize—compare internet/mobile plans, or save electricity with energy-efficient habits.",
-        'Entertainment': "💡 **Tip:** Entertainment spending is high. Look for free alternatives like parks, free events, or share subscriptions with friends/family.",
-        'Health & Wellness': "💡 **Tip:** Health is important! Consider generic medicines when possible, and use health insurance benefits to reduce costs.",
-        'Personal Care': "💡 **Tip:** Personal care matters, but check if you can DIY some services or find affordable alternatives.",
-        'Education': "💡 **Tip:** Education is an investment! Look for free online courses, second-hand books, or library resources to reduce costs.",
-    }
-    
-    if top_category in category_advice:
-        insights += f"\n{category_advice[top_category]}\n"
-    
-    # Add frequency insight
-    insights += f"""
-**📊 Spending Behavior:**
-You spend most frequently on **{most_frequent_category}** ({most_frequent_count} transactions). 
-"""
-    
-    # Identify if spending is concentrated or distributed
-    top_3_pct = (category_totals.head(3).sum() / total) * 100
-    if top_3_pct > 70:
-        insights += f"\n**🔍 Pattern Alert:** {top_3_pct:.0f}% of your spending is concentrated in just 3 categories. Consider if this balance aligns with your priorities."
-    else:
-        insights += f"\n**✅ Balanced Spending:** Your expenses are well-distributed across {len(category_totals)} categories."
-    
-    # Largest expense callout
-    insights += f"""
-
-**🏆 Biggest Single Expense:**
-₱{largest_expense['amount']:,.2f} on **{largest_expense['item']}** ({largest_expense['category']})
-"""
-    
-    # Add encouragement
-    if num_expenses >= 10:
-        insights += "\n\n**🎉 Great job tracking!** You're building great financial awareness by consistently logging your expenses. Keep it up!"
-    elif num_expenses >= 5:
-        insights += "\n\n**👍 Good start!** Keep logging expenses to get more detailed insights and better understand your spending patterns."
-    
-    return insights
-
-# App Header
-st.title("💰 Resibo")
-st.caption("Your Multilingual Expense Tracker | English • Tagalog • Bisaya")
-
-# Tab Navigation
-tab1, tab2 = st.tabs(["💬 Chat & Log", "📊 Analytics & Insights"])
-
-# Sidebar - Daily Log
+# Sidebar
 with st.sidebar:
-    st.header("📊 Daily Log")
+    st.markdown("### 💰 Resibo")
+    st.markdown("---")
+    
+    # Navigation
+    if st.button("🏠 Home", use_container_width=True, type="primary" if st.session_state.current_page == 'home' else "secondary"):
+        st.session_state.current_page = 'home'
+        st.rerun()
+    
+    if st.button("💬 Log Expenses", use_container_width=True, type="primary" if st.session_state.current_page == 'log' else "secondary"):
+        st.session_state.current_page = 'log'
+        st.rerun()
+    
+    if st.button("📊 Analytics", use_container_width=True, type="primary" if st.session_state.current_page == 'analytics' else "secondary"):
+        st.session_state.current_page = 'analytics'
+        st.rerun()
+    
+    if st.button("⚙️ Settings", use_container_width=True, type="primary" if st.session_state.current_page == 'settings' else "secondary"):
+        st.session_state.current_page = 'settings'
+        st.rerun()
+    
+    st.markdown("---")
+    
+    # Daily Log Summary
+    st.markdown("### 📊 Today's Summary")
     
     if st.session_state.expenses:
-        df = pd.DataFrame(st.session_state.expenses)
-        
-        # Display total
         total = calculate_total()
-        st.metric("Total Expenses", f"₱{total:,.2f}")
+        st.metric("Total Spent", f"₱{total:,.2f}")
         
-        # Export to CSV
-        csv = df.to_csv(index=False)
-        st.download_button(
-            label="📥 Export to CSV",
-            data=csv,
-            file_name=f"resibo_expenses_{datetime.now().strftime('%Y%m%d')}.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
+        df = pd.DataFrame(st.session_state.expenses)
+        category_totals = df.groupby('category')['amount'].sum().sort_values(ascending=False).head(3)
         
-        st.divider()
-        
-        # Category breakdown
-        st.subheader("By Category")
-        category_totals = df.groupby('category')['amount'].sum().sort_values(ascending=False)
+        st.markdown("**Top Categories:**")
         for cat, amt in category_totals.items():
-            percentage = (amt / total) * 100
-            st.write(f"**{cat}:** ₱{amt:,.2f} ({percentage:.1f}%)")
+            st.markdown(f"• {cat}: ₱{amt:,.2f}")
         
-        st.divider()
+        st.markdown("**Recent:**")
+        for exp in list(reversed(st.session_state.expenses))[:3]:
+            st.markdown(f"• ₱{exp['amount']:,.0f} - {exp['item']}")
         
-        # Expense list
-        st.subheader("All Expenses")
-        for i, exp in enumerate(reversed(st.session_state.expenses)):
-            with st.expander(f"₱{exp['amount']} - {exp['item']}"):
-                st.write(f"**Category:** {exp['category']}")
-                st.write(f"**Time:** {exp['timestamp']}")
-        
-        # Clear button
-        if st.button("🗑️ Clear All", type="secondary"):
+        if st.button("🗑️ Clear All", use_container_width=True):
             st.session_state.expenses = []
+            st.session_state.chat_history = []
             st.session_state.pending_expense = None
             st.rerun()
     else:
-        st.info("No expenses logged yet. Start chatting below!")
-    
-    st.divider()
-    
-    # Category Management Section
-    st.subheader("🏷️ Manage Categories")
-    
-    with st.expander("➕ Add Custom Category"):
-        new_cat_name = st.text_input("Category Name", placeholder="e.g., Pets, Subscriptions")
-        new_cat_keywords = st.text_input("Keywords (comma-separated)", 
-                                         placeholder="e.g., dog food, vet, pet")
-        
-        if st.button("Add Category"):
-            if new_cat_name and new_cat_keywords:
-                keywords_list = [k.strip() for k in new_cat_keywords.split(',')]
-                st.session_state.custom_categories[new_cat_name] = keywords_list
-                st.success(f"✅ Added category: {new_cat_name}")
-                st.rerun()
-            else:
-                st.error("Please fill in both fields")
-    
-    # Show existing custom categories
-    if st.session_state.custom_categories:
-        st.write("**Your Custom Categories:**")
-        for cat, keywords in st.session_state.custom_categories.items():
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.caption(f"**{cat}:** {', '.join(keywords[:3])}")
-            with col2:
-                if st.button("🗑️", key=f"del_{cat}"):
-                    del st.session_state.custom_categories[cat]
-                    st.rerun()
-    
-    # Show default categories
-    with st.expander("📋 Default Categories"):
-        default_cats = list(CATEGORY_KEYWORDS.keys())
-        for cat in default_cats:
-            if cat != 'Miscellaneous':
-                st.write(f"• {cat}")
-        st.caption("Miscellaneous (catch-all)")
+        st.info("No expenses yet!")
 
-# Tab 1: Chat & Log Expenses
-with tab1:
-    st.subheader("💬 Chat to Log Expenses")
+# Main content area
+if st.session_state.current_page == 'home':
+    st.markdown("""
+    <div class="welcome-card">
+        <div class="welcome-title">Track. Analyze. Save. 💰</div>
+        <div class="welcome-subtitle">Your multilingual budget companion</div>
+        <div class="feature-list">
+            <div class="feature-item">✅ Natural language logging</div>
+            <div class="feature-item">✅ AI-powered insights</div>
+            <div class="feature-item">✅ Taglish supported</div>
+        </div>
+        <p style="margin-top: 2rem; color: var(--text-secondary);">
+            Start by clicking <strong>💬 Log Expenses</strong> in the sidebar!
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # Display chat history
-    for msg in st.session_state.chat_history:
-        with st.chat_message(msg['role']):
-            st.write(msg['content'])
-
-    # Chat input
-    user_input = st.chat_input("Type your expense (e.g., 'I bought lunch for 85 pesos' or 'Plete nako 20')")
-
-    if user_input:
-        # Add user message to chat
-        st.session_state.chat_history.append({'role': 'user', 'content': user_input})
-        
-        # Process input
-        result = process_expense_input(user_input)
-        
-        if result['status'] == 'ready':
-            # Store pending expense
-            st.session_state.pending_expense = result
-            
-            # Generate witty acknowledgment
-            witty_msg = generate_witty_acknowledgment(
-                result['item'], 
-                result['category'], 
-                result['amount'],
-                result['language']
-            )
-            
-            # Create response message with witty acknowledgment
-            response = f"{witty_msg}\n\n"
-            response += "**Expense Summary:**\n\n"
-            response += f"| Field | Value |\n"
-            response += f"|-------|-------|\n"
-            response += f"| Amount | ₱{result['amount']:,.2f} |\n"
-            response += f"| Item | {result['item']} |\n"
-            response += f"| Category | {result['category']} |\n\n"
-            response += get_response_text(result['language'], 'confirm')
-            
-            st.session_state.chat_history.append({'role': 'assistant', 'content': response})
-            
+elif st.session_state.current_page == 'log':
+    st.markdown("### 💬 Log Your Expenses")
+    st.markdown("Type naturally - 'Lunch 85 pesos', 'Plete nako 15', 'Bumili bigas 200'")
+    
+    # Chat history with load more
+    messages_to_display = st.session_state.chat_history[-st.session_state.messages_to_show:]
+    
+    if len(st.session_state.chat_history) > st.session_state.messages_to_show:
+        if st.button("↑ Load earlier messages"):
+            st.session_state.messages_to_show += 10
+            st.rerun()
+    
+    for msg in messages_to_display:
+        if msg['role'] == 'user':
+            st.markdown(f'<div class="user-message">{msg["content"]}</div>', unsafe_allow_html=True)
         else:
-            # Missing data - ask for clarification
-            st.session_state.chat_history.append({'role': 'assistant', 'content': result['message']})
-        
-        st.rerun()
-
-    # Confirmation buttons (only show if there's a pending expense)
+            st.markdown(f'<div class="assistant-message">{msg["content"]}</div>', unsafe_allow_html=True)
+    
+    # Pending expense confirmation (conversational format)
     if st.session_state.pending_expense:
-        st.divider()
-        
-        # Show current category and allow override
         exp = st.session_state.pending_expense
         
-        # Get all available categories
-        all_categories = list(CATEGORY_KEYWORDS.keys()) + list(st.session_state.custom_categories.keys())
-        all_categories = sorted(set(all_categories))  # Remove duplicates and sort
+        confirmation, comment = generate_conversational_confirmation(
+            exp['item'], 
+            exp['category'], 
+            exp['amount']
+        )
         
-        # Find current category index
+        st.markdown(f"""
+        <div class="card">
+            <p style="color: var(--text-primary); font-size: 1.1rem; margin-bottom: 1rem;">
+                {confirmation}
+            </p>
+            <p style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 1.5rem;">
+                {comment}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("📂 **Category** (you can change it):")
+        
+        all_categories = list(CATEGORY_KEYWORDS.keys()) + list(st.session_state.custom_categories.keys())
+        all_categories = sorted(set(all_categories))
+        
         current_idx = all_categories.index(exp['category']) if exp['category'] in all_categories else 0
         
         selected_category = st.selectbox(
-            "📂 Category (you can change it):",
+            "Select category",
             options=all_categories,
             index=current_idx,
-            key="category_override"
+            key="category_override",
+            label_visibility="collapsed"
         )
         
-        # Update pending expense category if changed
         if selected_category != exp['category']:
             st.session_state.pending_expense['category'] = selected_category
         
@@ -746,7 +717,6 @@ with tab1:
                     'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 })
                 
-                # Add confirmation message
                 total = calculate_total()
                 confirm_msg = f"{get_response_text(exp['language'], 'saved')} Running total: ₱{total:,.2f}"
                 st.session_state.chat_history.append({'role': 'assistant', 'content': confirm_msg})
@@ -762,20 +732,37 @@ with tab1:
                 
                 st.session_state.pending_expense = None
                 st.rerun()
+    
+    # Chat input
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    user_input = st.text_input(
+        "Type your expense...",
+        placeholder="e.g., 'I bought lunch for 85 pesos' or 'Plete nako 20'",
+        key="expense_input",
+        label_visibility="collapsed"
+    )
+    
+    if user_input:
+        st.session_state.chat_history.append({'role': 'user', 'content': user_input})
+        
+        result = process_expense_input(user_input)
+        
+        if result['status'] == 'ready':
+            st.session_state.pending_expense = result
+        else:
+            st.session_state.chat_history.append({'role': 'assistant', 'content': result['message']})
+        
+        st.rerun()
 
-    # Footer
-    st.divider()
-    st.caption("💡 Tip: Just type naturally! Examples: 'Bumili ako ng bigas 200' | 'Plete nako 15' | 'Coffee 50 pesos'")
-
-# Tab 2: Analytics & Insights
-with tab2:
+elif st.session_state.current_page == 'analytics':
+    st.markdown("### 📊 Analytics & Insights")
+    
     if not st.session_state.expenses:
-        st.info("📊 No expenses yet! Start logging in the Chat tab to see your analytics here.")
+        st.info("📊 No expenses yet! Start logging in the Log Expenses tab to see your analytics here.")
     else:
         df = pd.DataFrame(st.session_state.expenses)
         total = calculate_total()
         
-        # Overview metrics
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("Total Spent", f"₱{total:,.2f}")
@@ -785,14 +772,12 @@ with tab2:
             avg_expense = total / len(st.session_state.expenses)
             st.metric("Avg per Expense", f"₱{avg_expense:,.2f}")
         
-        st.divider()
+        st.markdown("---")
         
-        # Charts section
         chart_col1, chart_col2 = st.columns(2)
         
-        # Pie Chart - Category Breakdown
         with chart_col1:
-            st.subheader("📊 Spending by Category")
+            st.markdown("#### 📊 Spending by Category")
             category_totals = df.groupby('category')['amount'].sum().reset_index()
             category_totals.columns = ['Category', 'Amount']
             
@@ -805,12 +790,11 @@ with tab2:
                 color_discrete_sequence=px.colors.qualitative.Set3
             )
             fig_pie.update_traces(textposition='inside', textinfo='percent+label')
-            fig_pie.update_layout(showlegend=False, height=350)
+            fig_pie.update_layout(showlegend=False, height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig_pie, use_container_width=True)
         
-        # Bar Chart - Top Categories
         with chart_col2:
-            st.subheader("📈 Top Spending Categories")
+            st.markdown("#### 📈 Top Spending Categories")
             top_categories = category_totals.sort_values('Amount', ascending=False).head(5)
             
             fig_bar = px.bar(
@@ -819,48 +803,75 @@ with tab2:
                 y='Category',
                 orientation='h',
                 color='Amount',
-                color_continuous_scale='Blues'
+                color_continuous_scale='Greens'
             )
             fig_bar.update_layout(
                 showlegend=False,
                 height=350,
-                yaxis={'categoryorder': 'total ascending'}
+                yaxis={'categoryorder': 'total ascending'},
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
             )
             fig_bar.update_traces(text=top_categories['Amount'].apply(lambda x: f"₱{x:,.0f}"), textposition='outside')
             st.plotly_chart(fig_bar, use_container_width=True)
         
-        st.divider()
+        st.markdown("---")
         
-        # AI Insights Section
-        st.subheader("🤖 AI Spending Insights")
+        st.markdown("#### 🤖 AI Spending Insights")
         
-        with st.expander("💡 **Your Personalized Analysis**", expanded=True):
-            # Generate AI insights
+        with st.expander("💡 Your Personalized Analysis", expanded=True):
             insights = generate_spending_insights(df, total)
-            
-            # Display insights in a nice format
             st.markdown(insights)
             
-            # Add a refresh button
             if st.button("🔄 Refresh Insights", use_container_width=True):
                 st.rerun()
+
+elif st.session_state.current_page == 'settings':
+    st.markdown("### ⚙️ Settings")
+    
+    st.markdown("#### 🏷️ Manage Categories")
+    
+    with st.expander("➕ Add Custom Category"):
+        new_cat_name = st.text_input("Category Name", placeholder="e.g., Pets, Subscriptions")
+        new_cat_keywords = st.text_input("Keywords (comma-separated)", 
+                                         placeholder="e.g., dog food, vet, pet")
         
-        st.divider()
-        
-        # Detailed breakdown
-        st.subheader("📋 Detailed Breakdown")
-        
-        # Category breakdown table
-        category_details = df.groupby('category').agg({
-            'amount': ['sum', 'count', 'mean']
-        }).reset_index()
-        category_details.columns = ['Category', 'Total', 'Count', 'Average']
-        category_details['Percentage'] = (category_details['Total'] / total * 100).round(1)
-        category_details = category_details.sort_values('Total', ascending=False)
-        
-        # Format the dataframe
-        category_details['Total'] = category_details['Total'].apply(lambda x: f"₱{x:,.2f}")
-        category_details['Average'] = category_details['Average'].apply(lambda x: f"₱{x:,.2f}")
-        category_details['Percentage'] = category_details['Percentage'].apply(lambda x: f"{x}%")
-        
-        st.dataframe(category_details, use_container_width=True, hide_index=True)
+        if st.button("Add Category", use_container_width=True):
+            if new_cat_name and new_cat_keywords:
+                keywords_list = [k.strip() for k in new_cat_keywords.split(',')]
+                st.session_state.custom_categories[new_cat_name] = keywords_list
+                st.success(f"✅ Added category: {new_cat_name}")
+                st.rerun()
+            else:
+                st.error("Please fill in both fields")
+    
+    if st.session_state.custom_categories:
+        st.markdown("**Your Custom Categories:**")
+        for cat, keywords in st.session_state.custom_categories.items():
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.markdown(f"**{cat}:** {', '.join(keywords[:3])}")
+            with col2:
+                if st.button("🗑️", key=f"del_{cat}"):
+                    del st.session_state.custom_categories[cat]
+                    st.rerun()
+    
+    with st.expander("📋 Default Categories"):
+        for cat in CATEGORY_KEYWORDS.keys():
+            if cat != 'Miscellaneous':
+                st.markdown(f"• {cat}")
+        st.caption("Miscellaneous (catch-all)")
+    
+    st.markdown("---")
+    
+    if st.session_state.expenses:
+        st.markdown("#### 📥 Export Data")
+        df = pd.DataFrame(st.session_state.expenses)
+        csv = df.to_csv(index=False)
+        st.download_button(
+            label="Download CSV",
+            data=csv,
+            file_name=f"resibo_expenses_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
